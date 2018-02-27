@@ -68,6 +68,9 @@ L:
 		m.Answer = resp.Answer
 		m.Rcode = resp.Rcode
 
+		// It's useful resolving CNAME for DNS of ELB, RDS and so on
+		resolveCNAME(name, m)
+
 		// Overwrite authority and additional section
 		if len(m.Answer) > 0 {
 			m.Ns = zone.ns
@@ -96,6 +99,7 @@ L:
 
 	state.SizeAndDo(m)
 	m, _ = state.Scrub(m)
+
 	w.WriteMsg(m)
 	return dns.RcodeSuccess, nil
 }
@@ -124,7 +128,58 @@ func handleNotFound(zone *Zone, name string, m *dns.Msg) {
 	m.Rcode = dns.RcodeNameError
 }
 
-func (ad *AmazonDNS) fillResponse(state request.Request, m *dns.Msg) {
+func resolveCNAME(reqName string, res *dns.Msg) {
+	ignore := map[string]struct{}{}
+
+	for {
+		var name string
+		var cname string
+		var ttl uint32
+		cnameIndex := -1
+
+		// Find CNAME record
+		for i, rr := range res.Answer {
+			if rr.Header().Rrtype == dns.TypeCNAME {
+				name = rr.Header().Name
+
+				if name != reqName {
+					continue
+				}
+
+				if _, ok := ignore[name]; ok {
+					continue
+				}
+
+				cname = rr.(*dns.CNAME).Target
+				ttl = rr.Header().Ttl
+
+				cnameIndex = i
+				break
+			}
+		}
+
+		if cnameIndex == -1 {
+			break
+		}
+
+		var replaced bool
+
+		// Replace records belong to CNAME record
+		for _, rr := range res.Answer {
+			if rr.Header().Name == cname {
+				rr.Header().Name = name
+				rr.Header().Ttl = ttl
+				replaced = true
+			}
+		}
+
+		// Remove CNAME record
+		if replaced {
+			res.Answer = append(res.Answer[:cnameIndex], res.Answer[cnameIndex+1:]...)
+		} else {
+			ignore[name] = struct{}{}
+		}
+	}
 }
 
 // Name implements the Handler interface.

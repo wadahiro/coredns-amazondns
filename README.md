@@ -26,7 +26,11 @@ amazondns ZONE [ADDRESS] {
 
 ## Examples
 
-Create your Route 53 private hostead zone with `sub.example.org` and attach your VPC. Then add A record for `test.sub.example.org` into the zone.
+Setup Route 53 as below.
+
+* Create your Route 53 private hostead zone with `sub.example.org` and attach your VPC.
+* Add A record as `test.sub.example.org` into the zone.
+* Add CNAME record as `lb.sub.example.org` for your ELB into the zone.
 
 Next, boot EC2 instance and deploy CoreDNS binary, and configure CoreDNS config file as below.
 
@@ -60,14 +64,14 @@ The `test.sub.example.org` is resolved with *AUTHORITY SECTION* and *ADDITIONAL 
 ; EDNS: version: 0, flags:; udp: 4096
 ; COOKIE: 23246de45b4a3601 (echoed)
 ;; QUESTION SECTION:
-;test.sub.example.org.		IN	A
+;test.sub.example.org.      IN  A
 
 ;; ANSWER SECTION:
-test.sub.example.org.	60	IN	A	10.0.0.10
+test.sub.example.org.   60  IN  A  10.0.0.10
 
 ;; AUTHORITY SECTION:
-sub.example.org.	60	IN	NS	ns1.sub.example.org.
-sub.example.org.	60	IN	NS	ns2.sub.example.org.
+sub.example.org.        60  IN  NS  ns1.sub.example.org.
+sub.example.org.        60  IN  NS  ns2.sub.example.org.
 
 ;; ADDITIONAL SECTION:
 ns1.sub.example.org.    60  IN  A   192.168.0.1
@@ -95,11 +99,11 @@ Also it can return NS record(s) for subdomain as below.
 ; EDNS: version: 0, flags:; udp: 4096
 ; COOKIE: c1c3332966dba8fd (echoed)
 ;; QUESTION SECTION:
-;sub.example.org.      IN  NS
+;sub.example.org.          IN  NS
 
 ;; ANSWER SECTION:
-sub.example.org.   60  IN  NS  ns1.sub.example.org.
-sub.example.org.   60  IN  NS  ns2.sub.example.org.
+sub.example.org.       60  IN  NS  ns1.sub.example.org.
+sub.example.org.       60  IN  NS  ns2.sub.example.org.
 
 ;; ADDITIONAL SECTION:
 ns1.sub.example.org.   60  IN  A   192.168.0.1
@@ -111,3 +115,39 @@ ns2.sub.example.org.   60  IN  A   192.168.0.2
 ;; MSG SIZE  rcvd: 125
 ```
 
+And it works like Route 53 alias record when answering CNAME record.
+Your CNAME record will be removed and A/AAAA records of the CNAME record will be replaces.
+
+```bash
+> dig @localhost lb.sub.example.org
+
+; <<>> DiG 9.11.1 <<>> @localhost test.sub.example.org +norecurse
+; (1 server found)
+;; global options: +cmd
+;; Got answer:
+;; ->>HEADER<<- opcode: QUERY, status: NOERROR, id: 63630
+;; flags: qr aa ra; QUERY: 1, ANSWER: 2, AUTHORITY: 2, ADDITIONAL: 3
+
+;; OPT PSEUDOSECTION:
+; EDNS: version: 0, flags:; udp: 4096
+; COOKIE: 89a840e16b4d3fc7 (echoed)
+;; QUESTION SECTION:
+;lb.sub.example.org.       IN  A
+
+;; ANSWER SECTION:
+lb.sub.example.org.    54  IN  A   10.0.0.16
+lb.sub.example.org.    54  IN  A   10.0.0.132
+
+;; AUTHORITY SECTION:
+sub.example.org.       60  IN  NS  ns1.sub.example.org.
+sub.example.org.       60  IN  NS  ns2.sub.example.org.
+
+;; ADDITIONAL SECTION:
+ns1.sub.example.org.   60  IN  A   192.168.0.1
+ns2.sub.example.org.   60  IN  A   192.168.0.2
+
+;; Query time: 11 msec
+;; SERVER: 127.0.0.1#53(127.0.0.1)
+;; WHEN: Tue Feb 27 11:20:08 JST 2018
+;; MSG SIZE  rcvd: 174
+```

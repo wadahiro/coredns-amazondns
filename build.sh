@@ -1,18 +1,24 @@
 #!/bin/sh
 
-VERSION=0.1
-TAG=master
+VERSION=0.2
+TAG=b1ce9ed6e5b6178fbfa73d3764d25a6e1f20fc82
+CADDY_TAG=37b291f82c2083a378b698577640389686b0baf4
 
 if [ "$1" = "" ]; then
     docker run --rm \
         -v $(pwd):/go/src/github.com/wadahiro/coredns-amazondns \
         -v $(pwd)/.tmp:/go \
         -w /go/src/github.com/wadahiro/coredns-amazondns \
-        golang:1.9 ./build.sh $TAG
+        golang:1.9 ./build.sh $TAG $CADDY_TAG
 else 
     echo "Building CoreDNS:$1 with amazondns..."
 
     go get github.com/coredns/coredns
+
+    cd /go/src/github.com/mholt/caddy
+
+    git checkout $2
+
     cd /go/src/github.com/coredns/coredns
 
     git reset --hard HEAD
