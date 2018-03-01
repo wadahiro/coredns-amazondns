@@ -1,6 +1,6 @@
 #!/bin/sh
 
-VERSION=0.2
+VERSION=0.2.1
 TAG=b1ce9ed6e5b6178fbfa73d3764d25a6e1f20fc82
 CADDY_TAG=37b291f82c2083a378b698577640389686b0baf4
 
@@ -44,7 +44,7 @@ else
     go build
 
     cp coredns /go/src/github.com/wadahiro/coredns-amazondns/
-    tar cvzf coredns-amazondns-$VERSION.tar.gz coredns
-    mv coredns-*.tar.gz /go/src/github.com/wadahiro/coredns-amazondns/
+    tar cvzf coredns-amazondns_${VERSION}_linux-amd64.tgz coredns
+    mv coredns-*.tgz /go/src/github.com/wadahiro/coredns-amazondns/
 fi
 

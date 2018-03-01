@@ -105,27 +105,27 @@ L:
 }
 
 func handleNotFound(zone *Zone, name string, m *dns.Msg) {
+	// Set authority
 	m.Ns = []dns.RR{zone.soa}
 
-	if name == zone.soa.Header().Name {
-		m.Rcode = dns.RcodeSuccess
-		return
-	}
-	for _, ns := range zone.ns {
-		if name == ns.Header().Name {
+	if m.Rcode == dns.RcodeNameError {
+		if name == zone.soa.Header().Name {
 			m.Rcode = dns.RcodeSuccess
 			return
 		}
-	}
-	for _, nsa := range zone.nsa {
-		if name == nsa.Header().Name {
-			m.Rcode = dns.RcodeSuccess
-			return
+		for _, ns := range zone.ns {
+			if name == ns.Header().Name {
+				m.Rcode = dns.RcodeSuccess
+				return
+			}
+		}
+		for _, nsa := range zone.nsa {
+			if name == nsa.Header().Name {
+				m.Rcode = dns.RcodeSuccess
+				return
+			}
 		}
 	}
-
-	// Error
-	m.Rcode = dns.RcodeNameError
 }
 
 func resolveCNAME(reqName string, res *dns.Msg) {
