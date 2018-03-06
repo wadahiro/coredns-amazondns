@@ -23,6 +23,8 @@ amazondns ZONE [ADDRESS] {
 * **soa** **RR** SOA record with [RFC 1035](https://tools.ietf.org/html/rfc1035#section-5) style.
 * **ns** **RR** NS record(s) with [RFC 1035](https://tools.ietf.org/html/rfc1035#section-5) style.
 * **nsa** **RR** A record(s) for the NS(s) with [RFC 1035](https://tools.ietf.org/html/rfc1035#section-5) style.
+  The IP address will be that of the EC2 instance on which CoreDNS is running with this plugin.
+  Note: You need to boot CoreDNS on an EC2 instance in the VPC because we can't access to Amazon DNS server from outside the VPC.
 
 ## Examples
 
@@ -32,21 +34,21 @@ Setup Route 53 as below.
 * Add A record as `test.sub.example.org` into the zone.
 * Add CNAME record as `lb.sub.example.org` for your ELB into the zone.
 
-Next, boot EC2 instance and deploy CoreDNS binary, and configure CoreDNS config file as below.
+Next, boot two EC2 instances for the name servers and deploy CoreDNS binary, and configure CoreDNS config file as below.
 
 ```txt
 . {
     amazondns sub.example.org {
-        soa "sub.example.org 60 IN SOA ns1.sub.example.org hostmaster.sub.example.org (1 7200 900 1209600 86400)"
-        ns "sub.example.org 60 IN NS ns1.sub.example.org"
-        ns "sub.example.org 60 IN NS ns2.sub.example.org"
-        nsa "ns1.sub.example.org 60 IN A 192.168.0.1"
-        nsa "ns2.sub.example.org 60 IN A 192.168.0.2"
+        soa "sub.example.org 3600 IN SOA ns1.sub.example.org hostmaster.sub.example.org (2018030619 3600 900 1209600 900)"
+        ns "sub.example.org 3600 IN NS ns1.sub.example.org"
+        ns "sub.example.org 3600 IN NS ns2.sub.example.org"
+        nsa "ns1.sub.example.org 3600 IN A 192.168.0.10"
+        nsa "ns2.sub.example.org 3600 IN A 192.168.0.130"
     }
 }
 ```
 
-Boot CoreDNS and check it how it works.
+Start CoreDNS and check it how it works.
 
 The `test.sub.example.org` is resolved with *AUTHORITY SECTION* and *ADDITIONAL SECTION* as below.
 
@@ -64,18 +66,18 @@ The `test.sub.example.org` is resolved with *AUTHORITY SECTION* and *ADDITIONAL 
 ; EDNS: version: 0, flags:; udp: 4096
 ; COOKIE: 23246de45b4a3601 (echoed)
 ;; QUESTION SECTION:
-;test.sub.example.org.      IN  A
+;test.sub.example.org.        IN  A
 
 ;; ANSWER SECTION:
-test.sub.example.org.   60  IN  A  10.0.0.10
+test.sub.example.org.   3600  IN  A  10.0.0.10
 
 ;; AUTHORITY SECTION:
-sub.example.org.        60  IN  NS  ns1.sub.example.org.
-sub.example.org.        60  IN  NS  ns2.sub.example.org.
+sub.example.org.        3600  IN  NS  ns1.sub.example.org.
+sub.example.org.        3600  IN  NS  ns2.sub.example.org.
 
 ;; ADDITIONAL SECTION:
-ns1.sub.example.org.    60  IN  A   192.168.0.1
-ns2.sub.example.org.    60  IN  A   192.168.0.2
+ns1.sub.example.org.    3600  IN  A   192.168.0.10
+ns2.sub.example.org.    3600  IN  A   192.168.0.130
 
 ;; Query time: 12 msec
 ;; SERVER: 127.0.0.1#53(127.0.0.1)
@@ -99,15 +101,15 @@ Also it can return NS record(s) for subdomain as below.
 ; EDNS: version: 0, flags:; udp: 4096
 ; COOKIE: c1c3332966dba8fd (echoed)
 ;; QUESTION SECTION:
-;sub.example.org.          IN  NS
+;sub.example.org.            IN  NS
 
 ;; ANSWER SECTION:
-sub.example.org.       60  IN  NS  ns1.sub.example.org.
-sub.example.org.       60  IN  NS  ns2.sub.example.org.
+sub.example.org.       3600  IN  NS  ns1.sub.example.org.
+sub.example.org.       3600  IN  NS  ns2.sub.example.org.
 
 ;; ADDITIONAL SECTION:
-ns1.sub.example.org.   60  IN  A   192.168.0.1
-ns2.sub.example.org.   60  IN  A   192.168.0.2
+ns1.sub.example.org.   3600  IN  A   192.168.0.10
+ns2.sub.example.org.   3600  IN  A   192.168.0.130
 
 ;; Query time: 1 msec
 ;; SERVER: 127.0.0.1#53(127.0.0.1)
@@ -132,19 +134,19 @@ Your CNAME record will be removed and A/AAAA records of the CNAME record will be
 ; EDNS: version: 0, flags:; udp: 4096
 ; COOKIE: 89a840e16b4d3fc7 (echoed)
 ;; QUESTION SECTION:
-;lb.sub.example.org.       IN  A
+;lb.sub.example.org.         IN  A
 
 ;; ANSWER SECTION:
-lb.sub.example.org.    54  IN  A   10.0.0.16
-lb.sub.example.org.    54  IN  A   10.0.0.132
+lb.sub.example.org.    54    IN  A   10.0.0.16
+lb.sub.example.org.    54    IN  A   10.0.0.132
 
 ;; AUTHORITY SECTION:
-sub.example.org.       60  IN  NS  ns1.sub.example.org.
-sub.example.org.       60  IN  NS  ns2.sub.example.org.
+sub.example.org.       3600  IN  NS  ns1.sub.example.org.
+sub.example.org.       3600  IN  NS  ns2.sub.example.org.
 
 ;; ADDITIONAL SECTION:
-ns1.sub.example.org.   60  IN  A   192.168.0.1
-ns2.sub.example.org.   60  IN  A   192.168.0.2
+ns1.sub.example.org.   3600  IN  A   192.168.0.10
+ns2.sub.example.org.   3600  IN  A   192.168.0.130
 
 ;; Query time: 11 msec
 ;; SERVER: 127.0.0.1#53(127.0.0.1)
