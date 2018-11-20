@@ -19,7 +19,7 @@ amazondns ZONE [ADDRESS] {
 
 * **ZONE** the zone scope for this plugin.
 * **ADDRESS** defines the Amazon DNS server address specifically.
-  If no **ADDRESS** entry, this plugin resovles it automatically using [Instance Metadata](https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/ec2-instance-metadata.html).
+  If no **ADDRESS** entry, this plugin resolves it automatically using [Instance Metadata](https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/ec2-instance-metadata.html).
 * **soa** **RR** SOA record with [RFC 1035](https://tools.ietf.org/html/rfc1035#section-5) style.
 * **ns** **RR** NS record(s) with [RFC 1035](https://tools.ietf.org/html/rfc1035#section-5) style.
 * **nsa** **RR** A record(s) for the NS(s) with [RFC 1035](https://tools.ietf.org/html/rfc1035#section-5) style.
